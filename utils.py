@@ -26,7 +26,8 @@ def http_get_with_retry(
 import logging
 from functools import wraps
 import streamlit as st
-from utils import send_telegram  # 또는 실제 send_telegram 경로로 조정
+
+# 또는 실제 send_telegram 경로로 조정
 
 def exception_notifier(func):
     @wraps(func)
@@ -151,3 +152,21 @@ def get_current_price(symbol: str) -> float:
     from binance.client import Client
     client = Client(os.getenv("BINANCE_API_KEY"), os.getenv("BINANCE_SECRET_KEY"))
     return float(client.get_symbol_ticker(symbol=symbol)["price"])
+
+# utils.py
+
+def send_telegram(message: str):
+    # 텔레그램 전송 로직
+    pass
+
+def exception_notifier(func):
+    def wrapper(*args, **kwargs):
+        try:
+            return func(*args, **kwargs)
+        except Exception as e:
+            send_telegram(str(e))
+            raise
+    return wrapper
+
+# trade_executor.py
+from utils import exception_notifier, send_telegram
