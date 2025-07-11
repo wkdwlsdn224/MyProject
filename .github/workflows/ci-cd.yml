@@ -1,0 +1,70 @@
+name: CI/CD Pipeline
+
+# main 브랜치에 Push나 PR 머지될 때마다 실행
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  # 1. 도커 이미지 빌드 & Docker Hub에 푸시
+  build-and-push:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Log in to Docker Hub
+        uses: docker/login-action@v2
+        with:
+          username: ${{ secrets.DOCKERHUB_wkdwlsdn224 }}
+          password: ${{ secrets.DOCKERHUB_e.g. ghp_abcd1234XYZ5678mnopQRS }}
+
+      - name: Build and push image
+        uses: docker/build-push-action@v4
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ secrets.DOCKERHUB_USERNAME }}/trading-bot:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # 2. 배포: SSH로 서버에 접속해 Pull & 재시작
+  deploy:
+    needs: build-and-push
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Deploy to Remote Server
+        uses: appleboy/ssh-action@v0.1.7
+        with:
+          host:     ${{ secrets.61.74.129.210 }}
+          username: ${{ secrets.ubuntu }}
+          key:      ${{ secrets.-----BEGIN OPENSSH PRIVATE KEY-----
+b3BlbnNzaC1rZXktdjEAAAAABG5vbmUAAAAEbm9uZQAAAAAAAAABAAAAMwAAAAtzc2gtZW
+QyNTUxOQAAACCujKspZlDIXC3rGEqkF9rhmv0o1/soFLAIsc+DNhYwTgAAAJC0Ay2ftAMt
+nwAAAAtzc2gtZWQyNTUxOQAAACCujKspZlDIXC3rGEqkF9rhmv0o1/soFLAIsc+DNhYwTg
+AAAED2DlWJBHBwLnjf3OJxTdGDcGcziVtLjqqj+BPXIxx8G66MqylmUMhcLesYSqQX2uGa
+/SjX+ygUsAixz4M2FjBOAAAADWdpdGh1Yi1kZXBsb3k=
+-----END OPENSSH PRIVATE KEY----- }}
+          port:     22
+          # strict 호스트 키 검증이 필요하면 아래 주석 해제
+          # known_hosts: ${{ secrets.KNOWN_HOSTS }}
+          # strict: true
+          script: |
+            cd /home/${{ secrets.SERVER_USER }}/MyProject
+            # docker-compose.yml 의 이미지 태그를 최신 SHA로 교체
+            sed -i "s|image: .*/trading-bot:.*|image: ${{ secrets.DOCKERHUB_USERNAME }}/trading-bot:${{ github.sha }}|g" docker-compose.yml
+            docker compose pull trading_bot
+            docker compose up -d trading_bot
+            docker compose logs trading_bot --tail 50
