@@ -2,31 +2,31 @@ app = "myproject-purple-river-37"
 primary_region = "sjc"
 
 [build]
-  # 빌드 설정이 있으면 여기에…
+  # …
 
 [processes]
-  # "app" 프로세스 이름으로 main.py 실행
   app = "python main.py"
 
 [[services]]
-  # 위에서 정의한 "app" 프로세스를 이 서비스에 바인딩
   processes     = ["app"]
-  protocol      = "tcp"
   internal_port = 8080
+  protocol      = "tcp"    # ← 반드시 tcp
 
-  # HTTP (포트 80)
+  # HTTP (80)
   [[services.ports]]
     port     = 80
     handlers = ["http"]
 
-  # HTTPS (포트 443) — 반드시 "tls" 핸들러를 추가해야 Fly Proxy가 TLS 종료를 수행합니다
+  # HTTPS (443)
   [[services.ports]]
     port     = 443
     handlers = ["tls", "http"]
 
-  # 헬스체크 정의
+  # 헬스체크: internal_port(8080)에 HTTP /health 경로 호출
   [[services.checks]]
     type         = "http"
+    protocol     = "http"
+    port         = 8080
     path         = "/health"
     interval     = "10s"
     timeout      = "2s"
