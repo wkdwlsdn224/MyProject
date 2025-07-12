@@ -1,18 +1,27 @@
-# 1. 베이스 이미지
-FROM python:3.12-slim
+# Python 3.10 slim 베이스
+FROM python:3.10-slim
 
-# 2. 작업 디렉터리 설정
 WORKDIR /app
 
-# 3. 의존성 복사 및 설치
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+# 최소 시스템 패키지 설치
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    libglib2.0-0 \
+    libsm6 \
+    libxext6 \
+    libxrender-dev \
+  && rm -rf /var/lib/apt/lists/*
 
-# 4. 코드 복사
+# 파이썬 의존성 설치
+COPY requirements.txt .
+RUN pip install --no-cache-dir --upgrade pip \
+ && pip install --no-cache-dir --upgrade --force-reinstall -r requirements.txt
+
+# 코드 복사
 COPY . .
 
-# 5. 환경 변수 (빌드 시 값 주입 or .env 사용)
 ENV PYTHONUNBUFFERED=1
 
-# 6. 애플리케이션 실행
-CMD ["streamlit", "run", "dashboard.py", "--server.port=8501", "--server.address=0.0.0.0"]
+# main.py 에서 FastAPI + bot 루프를 동시에 띄우도록 작성했기 때문에
+# 이 한 줄만 있으면 됩니다.
+CMD ["python", "main.py"]
