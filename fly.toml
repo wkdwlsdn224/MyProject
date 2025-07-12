@@ -2,32 +2,32 @@ app = "myproject-purple-river-37"
 primary_region = "sjc"
 
 [build]
-  # 빌드팩을 쓰실 경우(예: pack), 혹은 빈 채워 두세요.
-  # builder = "paketobuildpacks/builder:base"
+  # …기존 빌드 설정…
 
+# FastAPI가 0.0.0.0:8080에서 HTTP 서비스만 쓰도록 하는 설정입니다.
 [http_service]
-  internal_port = 8080
-  force_https    = true
+  internal_port       = 8080
+  force_https         = true
   auto_stop_machines  = "stop"
   auto_start_machines = true
   min_machines_running = 0
 
+# services 블록을 남겨두되, v2 형식에 맞춰 수정합니다.
 [[services]]
-  protocol      = "http"
   internal_port = 8080
+  # protocol → protocols, 리스트 형태로 변경
+  protocols     = ["tcp"]
   ports = [
-    { port = 80 },
-    { port = 443 }
+    # HTTP 핸들러 지정
+    { port = 80,  handlers = ["http"] },
+    { port = 443, handlers = ["http"] },
   ]
 
+# (원한다면) 헬스체크를 직접 services 블록에 넣을 수도 있습니다.
 [[services.http_checks]]
-  interval         = "10s"
-  grace_period     = "5s"
-  timeout          = "2s"
-  method           = "get"
-  path             = "/health"
-
-[[vm]]
-  memory   = "1gb"
-  cpu_kind = "shared"
-  cpus     = 1
+  interval        = "10s"
+  grace_period    = "5s"
+  timeout         = "2s"
+  method          = "get"
+  path            = "/health"
+  tls_skip_verify = false
