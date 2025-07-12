@@ -2,32 +2,32 @@ app = "myproject-purple-river-37"
 primary_region = "sjc"
 
 [build]
-  # …기존 빌드 설정…
+  # 빌드 설정이 있으면 여기에…
 
-# FastAPI가 0.0.0.0:8080에서 HTTP 서비스만 쓰도록 하는 설정입니다.
-[http_service]
-  internal_port       = 8080
-  force_https         = true
-  auto_stop_machines  = "stop"
-  auto_start_machines = true
-  min_machines_running = 0
+[processes]
+  # "app" 프로세스 이름으로 main.py 실행
+  app = "python main.py"
 
-# services 블록을 남겨두되, v2 형식에 맞춰 수정합니다.
 [[services]]
+  # 위에서 정의한 "app" 프로세스를 이 서비스에 바인딩
+  processes     = ["app"]
+  protocol      = "tcp"
   internal_port = 8080
-  # protocol → protocols, 리스트 형태로 변경
-  protocols     = ["tcp"]
-  ports = [
-    # HTTP 핸들러 지정
-    { port = 80,  handlers = ["http"] },
-    { port = 443, handlers = ["http"] },
-  ]
 
-# (원한다면) 헬스체크를 직접 services 블록에 넣을 수도 있습니다.
-[[services.http_checks]]
-  interval        = "10s"
-  grace_period    = "5s"
-  timeout         = "2s"
-  method          = "get"
-  path            = "/health"
-  tls_skip_verify = false
+  # HTTP (포트 80)
+  [[services.ports]]
+    port     = 80
+    handlers = ["http"]
+
+  # HTTPS (포트 443) — 반드시 "tls" 핸들러를 추가해야 Fly Proxy가 TLS 종료를 수행합니다
+  [[services.ports]]
+    port     = 443
+    handlers = ["tls", "http"]
+
+  # 헬스체크 정의
+  [[services.checks]]
+    type         = "http"
+    path         = "/health"
+    interval     = "10s"
+    timeout      = "2s"
+    grace_period = "5s"
