@@ -1,0 +1,33 @@
+app = "myproject-purple-river-37"
+primary_region = "sjc"
+
+[build]
+  # 빌드팩을 쓰실 경우(예: pack), 혹은 빈 채워 두세요.
+  # builder = "paketobuildpacks/builder:base"
+
+[http_service]
+  internal_port = 8080
+  force_https    = true
+  auto_stop_machines  = "stop"
+  auto_start_machines = true
+  min_machines_running = 0
+
+[[services]]
+  protocol      = "http"
+  internal_port = 8080
+  ports = [
+    { port = 80 },
+    { port = 443 }
+  ]
+
+[[services.http_checks]]
+  interval         = "10s"
+  grace_period     = "5s"
+  timeout          = "2s"
+  method           = "get"
+  path             = "/health"
+
+[[vm]]
+  memory   = "1gb"
+  cpu_kind = "shared"
+  cpus     = 1
