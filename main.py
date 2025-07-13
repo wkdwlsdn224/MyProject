@@ -41,111 +41,19 @@ logging.basicConfig(
     format="%(asctime)s %(levelname)s %(message)s",
 )
 
+# (여기에 챗봇 엔드포인트 등 다른 코드가 있다면 그대로 둡니다)
 
-# ─── 여기에 챗봇 엔드포인트 추가 ──────────────────────────────────────────────
-class ChatRequest(BaseModel):
-    message: str
+# ─── 여기부터 파일 끝 부분 ──────────────────────────────
 
-class ChatResponse(BaseModel):
-    reply: str
-
-@health_app.post("/chat", response_model=ChatResponse)
-async def chat_endpoint(req: ChatRequest):
-    # TODO: 실제 챗봇 로직으로 교체하세요 (예: OpenAI API 호출)
-    answer = f"Echo: {req.message}"
-    return {"reply": answer}
-# ────────────────────────────────────────────────────────────────────────────
-
-
-async def process_symbol(client_sync, client_async, symbol, portfolio):
-    try:
-        # 처리 지연 측정
-        with process_latency.labels(symbol=symbol).time():
-            df = load_candle_data(client_sync, symbol, "1m", 100)
-            score = get_strategy_score(df, STRATEGY_MODE)
-            if score < MIN_STRATEGY_SCORE:
-                return
-
-            lev = compute_leverage(score)
-            thresholds = get_dynamic_thresholds(df)
-            threshold = (
-                thresholds["aggressive"]
-                if STRATEGY_MODE == "aggressive"
-                else thresholds["conservative"]
-            )
-
-            model = train_lstm(df)
-            prediction = predict_future_lstm(model, df)
-
-            if prediction > threshold:
-                order = await client_async.futures_create_order(
-                    symbol=symbol,
-                    side="BUY",
-                    type="MARKET",
-                    quantity=lev,
-                )
-                entry_price = float(order.get("avgFillPrice", 0))
-
-                # 실제 운영 시에는 별도 exit_price 변수를 사용하세요
-                exit_price = entry_price
-                pnl_pct = (exit_price - entry_price) / entry_price * 100
-
-                # 메트릭 갱신
-                order_counter.labels(symbol=symbol).inc()
-                last_trade_pnl.set(pnl_pct)
-                pnl_distribution.observe(pnl_pct)
-
-                # 로깅·알림
-                record_trade(symbol, entry_price, "BUY", lev, pnl_pct)
-                send_position_update(symbol, "LONG", entry_price, pnl=pnl_pct)
-                log_event(
-                    f"Entered LONG {symbol} @ {entry_price:.3f} → PnL: {pnl_pct:.2f}%",
-                    level="SUCCESS"
-                )
-                portfolio.update_position(symbol, "LONG", entry_price)
-
-    except Exception as e:
-        error_counter.labels(symbol=symbol).inc()
-        msg = f"Error in process_symbol({symbol}): {e}"
-        log_event(msg, level="ERROR")
-        send_telegram(f"🛑 {msg}")
-
+async def start_api():
+    config = uvicorn.Config(health_app, host="0.0.0.0", port=8080, log_level="info")
+    server = uvicorn.Server(config)
+    await server.serve()
 
 async def main():
-    client_sync = Client(API_KEY, API_SECRET)
-    client_async = await AsyncClient.create(API_KEY, API_SECRET)
-
-    send_telegram("🚀 Bot 시동 완료")
-    log_event("봇 시동 완료", level="SUCCESS")
-
-    symbols = await get_reliable_symbols(client_async)
-    portfolio = Portfolio()
-    await asyncio.gather(*[
-        process_symbol(client_sync, client_async, sym, portfolio)
-        for sym in symbols
-    ])
-
-    await client_async.close_connection()
-
+    api_task = asyncio.create_task(start_api())
+    bot_task = asyncio.create_task(run_bot_loop())
+    await asyncio.gather(api_task, bot_task)
 
 if __name__ == "__main__":
-    # 헬스·메트릭 서버 백그라운드 기동
-    threading.Thread(
-        target=lambda: uvicorn.run(
-            health_app,
-            host="0.0.0.0",
-            port=8000,
-            log_level="info"
-        ),
-        daemon=True
-    ).start()
-
-    # 메인 루프 (30초마다 실행)
-    while True:
-        try:
-            asyncio.run(main())
-        except Exception as e:
-            msg = f"🌀 루프 오류 — 재시작: {e}"
-            send_telegram(msg)
-            log_event(msg, level="ERROR")
-        time.sleep(30)
+    asyncio.run(main())

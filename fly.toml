@@ -2,27 +2,24 @@ app = "myproject-purple-river-37"
 primary_region = "sjc"
 
 [build]
-  # …
+  # (필요한 경우 여기에 빌드 설정 추가)
 
 [processes]
   app = "python main.py"
 
 [[services]]
   processes     = ["app"]
+  protocol      = "tcp"
   internal_port = 8080
-  protocol      = "tcp"    # ← 반드시 tcp
 
-  # HTTP (80)
   [[services.ports]]
     port     = 80
     handlers = ["http"]
 
-  # HTTPS (443)
   [[services.ports]]
     port     = 443
     handlers = ["tls", "http"]
 
-  # 헬스체크: internal_port(8080)에 HTTP /health 경로 호출
   [[services.checks]]
     type         = "http"
     protocol     = "http"
