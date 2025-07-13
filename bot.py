@@ -23,14 +23,15 @@ async def run_bot_loop():
             client_async = await AsyncClient.create(
                 API_KEY,
                 API_SECRET,
-                testnet=True,
-                session_params={"trust_env": False},
-                # base_endpoint="https://testnet.binance.vision"
+                testnet=True,                                   # <-- 쉼표 추가
+                session_params={"trust_env": False}             # <-- 딕셔너리 닫는 괄호 추가
             )
             logging.info("[bot] Binance 테스트넷 연결 성공")
         except Exception as e:
             logging.warning(f"[bot] Binance 테스트넷 연결 실패, 30초 뒤 재시도합니다: {e}")
             await asyncio.sleep(30)
+
+    # … (초기화 코드)
 
     while True:
         try:
