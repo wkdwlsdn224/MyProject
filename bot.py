@@ -26,6 +26,7 @@ async def run_bot_loop():
                 API_KEY,
                 API_SECRET,
                 testnet=True
+                session_params={"trust_env": False
                 # 만약 base_endpoint를 직접 지정하고 싶다면:
                 # base_endpoint="https://testnet.binance.vision"
             )
