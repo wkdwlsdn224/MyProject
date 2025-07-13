@@ -24,7 +24,7 @@ async def run_bot_loop():
                 API_KEY,
                 API_SECRET,
                 testnet=True,                                   # <-- 쉼표 추가
-                session_params={"trust_env": False}             # <-- 딕셔너리 닫는 괄호 추가
+                session_params={"trust_env": False},             # <-- 딕셔너리 닫는 괄호 추가
             )
             logging.info("[bot] Binance 테스트넷 연결 성공")
         except Exception as e:
