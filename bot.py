@@ -18,15 +18,16 @@ async def run_bot_loop():
         logging.error("API_KEY/API_SECRET 환경변수가 설정되지 않았습니다.")
         return
 
-    # 1) 테스트넷(또는 실제넷) 연결 시도
     client_async = None
     while client_async is None:
         try:
-            # 테스트넷 URL을 명시적으로 지정
+            # 1) 테스트넷 연결: testnet=True 또는 base_endpoint 지정
             client_async = await AsyncClient.create(
                 API_KEY,
                 API_SECRET,
-                base_url="https://testnet.binance.vision"
+                testnet=True
+                # 만약 base_endpoint를 직접 지정하고 싶다면:
+                # base_endpoint="https://testnet.binance.vision"
             )
             logging.info("[bot] Binance 테스트넷 연결 성공")
         except Exception as e:
@@ -45,5 +46,4 @@ async def run_bot_loop():
 
 
 if __name__ == "__main__":
-    # 로컬에서 테스트할 때만 실행
     asyncio.run(run_bot_loop())
